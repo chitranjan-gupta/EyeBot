@@ -48,7 +48,7 @@ function checkPrice(username, url, prices) {
   const warkar = new Worker("./worker.js", { workerData: JSON.stringify({ username: username, url: url, prices: prices }) });
   warkar.on("message", function(val) {
     let { username, url, price } = JSON.parse(val);
-    User.updateOne({ username: username, "products.url": url }, { $push: { "products.$.prices": price } });
+    User.updateOne({ username: username, "products.url": url }, { $push: { "products.$.prices": price }, $set:{ "products.$.status": true } }).exec();
   });
   warkar.on("error", (err) => { log(err) });
   workerArray.push(warkar);
@@ -132,7 +132,7 @@ app.post("/", async (req, res) => {
           await sendMessage(chatId, message);
           for (let i = 0; i < data.products.length; i++) {
             const product = data.products[i];
-            const productDetail = `${i + 1}. ${product.name ? product.name : "Unknown"} \nLink: ${product.url} \nCurrent Price: ${product.prices[product.length - 1] ? product.prices[product.length - 1] : "Unknown"} \nStatus: ${product.status}\n`;
+            const productDetail = `${i + 1}. ${product.name ? product.name : "Unknown"} \nLink: ${product.url} \nCurrent Price: ${product.prices[product.prices.length - 1] ? "₹"+product.prices[product.prices.length - 1] : "Unknown"} \nStatus: ${product.status}\n`;
             await sendMessage(chatId, productDetail);
           }
         } else {
