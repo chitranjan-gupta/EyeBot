@@ -1,4 +1,4 @@
-const worker = require("node:worker_threads");
+const { Worker } = require("node:worker_threads");
 const mongoose = require("mongoose");
 const express = require("express");
 const axios = require("axios");
@@ -43,11 +43,15 @@ async function getUser(username) {
     return 0;
   }
 }
-
-function checkPrice(url,prices) {
-  const worker = new Worker("./worker.js",{ workerData: JSON.stringify({url:url,prices:prices})});
-  worker.on("message",(val) => {log(val)});
-  worker.on("error",(err) => {log(err)});
+let workerArray = [];
+function checkPrice(username, url, prices) {
+  const warkar = new Worker("./worker.js", { workerData: JSON.stringify({ username: username, url: url, prices: prices }) });
+  warkar.on("message", function(val) {
+    let { username, url, price } = JSON.parse(val);
+    User.updateOne({ username: username, "products.url": url }, { $push: { "products.$.prices": price } });
+  });
+  warkar.on("error", (err) => { log(err) });
+  workerArray.push(warkar);
 };
 
 app.use(express.json());
@@ -89,8 +93,9 @@ app.post("/", async (req, res) => {
             const message = "Started Tracking...";
             await sendMessage(chatId, message);
             //Start Tracking
-            
-            //checkPrice(URL);
+            for (let i = 0; i < data.products.length; i++) {
+              checkPrice(data.username, data.products[i].url, data.products[i].prices ? data.products[i].prices : [-1]);
+            }
           } else {
             const message = "Tracking is already running.";
             await sendMessage(chatId, message);
@@ -108,6 +113,9 @@ app.post("/", async (req, res) => {
             const message = "Stopped Tracking...";
             await sendMessage(chatId, message);
             //Stop Tracking
+            workerArray.forEach((warker) => {
+              warker.postMessage("exit");
+            })
           } else {
             const message = "Tracking is already stopped.";
             await sendMessage(chatId, message);
