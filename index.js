@@ -3,10 +3,12 @@ const mongoose = require("mongoose");
 const express = require("express");
 const axios = require("axios");
 const app = express();
-
+app.set("view engine", "ejs");
+//Set the view engine to ejs
 const BOT_TOKEN = process.env["BOT_TOKEN"];
 // Token used by telegram to authorize the use of a bot; replace with your token
 // Connect to MongoDB
+mongoose.set('strictQuery', true);
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
@@ -48,7 +50,7 @@ function checkPrice(username, url, prices) {
   const warkar = new Worker("./worker.js", { workerData: JSON.stringify({ username: username, url: url, prices: prices }) });
   warkar.on("message", function(val) {
     let { username, url, price } = JSON.parse(val);
-    User.updateOne({ username: username, "products.url": url }, { $push: { "products.$.prices": price }, $set:{ "products.$.status": true } }).exec();
+    User.updateOne({ username: username, "products.url": url }, { $push: { "products.$.prices": price }, $set: { "products.$.status": true } }).exec();
   });
   warkar.on("error", (err) => { log(err) });
   workerArray.push(warkar);
@@ -57,7 +59,8 @@ function checkPrice(username, url, prices) {
 app.use(express.json());
 app.get("/", (req, res) => {
   log(req.headers["x-forwarded-for"]);
-  res.status(200).send("ok");
+  //res.status(200).send("ok");
+  res.render("pages/index");
 })
 app.post("/", async (req, res) => {
   //log(req.rawHeaders);
@@ -132,7 +135,7 @@ app.post("/", async (req, res) => {
           await sendMessage(chatId, message);
           for (let i = 0; i < data.products.length; i++) {
             const product = data.products[i];
-            const productDetail = `${i + 1}. ${product.name ? product.name : "Unknown"} \nLink: ${product.url} \nCurrent Price: ${product.prices[product.prices.length - 1] ? "₹"+product.prices[product.prices.length - 1] : "Unknown"} \nStatus: ${product.status}\n`;
+            const productDetail = `${i + 1}. ${product.name ? product.name : "Unknown"} \nLink: ${product.url} \nCurrent Price: ${product.prices[product.prices.length - 1] ? "₹" + product.prices[product.prices.length - 1] : "Unknown"} \nStatus: ${product.status}\n`;
             await sendMessage(chatId, productDetail);
           }
         } else {
@@ -175,8 +178,6 @@ app.post("/", async (req, res) => {
       }
   }
 })
-app.listen(process.env.PORT, () => {
-  log("Started Server");
-});
+module.exports = app;
 //https://api.telegram.org/bot[botToken]/setWebhook?url=[url]&drop_pending_updates=true
 //https://api.telegram.org/bot[botToken]/sendMessage?chat_id=[intger or string]&text=[string]

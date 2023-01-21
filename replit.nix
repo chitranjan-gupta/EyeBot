@@ -1,6 +1,8 @@
 { pkgs }: {
 	deps = [
-		pkgs.nodejs-16_x
+		pkgs.nano
+  pkgs.toybox
+  pkgs.nodejs
         pkgs.nodePackages.typescript-language-server
         pkgs.yarn
         pkgs.replitPackages.jest
