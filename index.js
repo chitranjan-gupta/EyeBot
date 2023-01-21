@@ -189,6 +189,11 @@ app.post("/", async (req, res) => {
       }
   }
 })
+if(process.env["BUILD"] === "Production"){
+  app.listen(process.env.PORT, () => {
+    console.log("Started Server");
+  });
+}
 module.exports = app;
 //https://api.telegram.org/bot[botToken]/setWebhook?url=[url]&drop_pending_updates=true
 //https://api.telegram.org/bot[botToken]/sendMessage?chat_id=[intger or string]&text=[string]

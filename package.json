@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "private": "true",
-  "main": "main.js",
   "scripts": {
-    "start": "node main.js"
+    "start": "node index.js",
+    "start-dev":"node main.js"
   },
   "author": "Chitranjan Gupta",
   "license": "MIT",
