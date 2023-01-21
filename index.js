@@ -3,8 +3,12 @@ const mongoose = require("mongoose");
 const express = require("express");
 const axios = require("axios");
 const app = express();
+const pattern = /(?:https?):\/\/(\w+:?\w*)?(\S+)(:\d+)?(\/|\/([\w#!:.?+=&%!\-\/]))?/;
 app.set("view engine", "ejs");
 //Set the view engine to ejs
+
+function log(text) { console.log(text); } //Logging
+
 const BOT_TOKEN = process.env["BOT_TOKEN"];
 // Token used by telegram to authorize the use of a bot; replace with your token
 // Connect to MongoDB
@@ -35,8 +39,6 @@ const sendMessage = async (chatId, message) => {
   await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}`);
 };
 
-function log(text) { console.log(text); } //Logging
-
 async function getUser(username) {
   try {
     return await User.findOne({ username: username });
@@ -57,8 +59,18 @@ function checkPrice(username, url, prices) {
 };
 
 app.use(express.json());
-app.get("/", (req, res) => {
+app.get("/", async (req, res) => {
   log(req.headers["x-forwarded-for"]);
+  if (process.env["WEBHOOK_URL"]) {
+    if (process.env["WEBHOOK_URL"].match(pattern)[0]) {
+      const result = await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/getWebhookInfo`);
+      if (result.url) {
+        if(process.env["WEBHOOK_URL"] !== result.url){
+          await axios.get(`https://api.telegram.org/bot${botToken}/setWebhook?url=${process.env["WEBHOOK_URL"]}&drop_pending_updates=true`);
+        }
+      }
+    }
+  }
   //res.status(200).send("ok");
   res.render("pages/index");
 })
@@ -154,7 +166,6 @@ app.post("/", async (req, res) => {
     default:
       {
         if (req.body.message.text.includes("https://")) {
-          const pattern = /(?:https?):\/\/(\w+:?\w*)?(\S+)(:\d+)?(\/|\/([\w#!:.?+=&%!\-\/]))?/;
           const URL = req.body.message.text.match(pattern)[0];
           const chatId = req.body.message.chat.id;
           const message = "Link is Added to tracking.\n To Start Tracking send command " +
