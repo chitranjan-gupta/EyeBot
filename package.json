@@ -8,9 +8,6 @@
     "start": "node index.js",
     "start-dev":"node main.js"
   },
-  "engines": {
-    "node": "16.x"
-  },
   "author": "Chitranjan Gupta",
   "license": "MIT",
   "dependencies": {
