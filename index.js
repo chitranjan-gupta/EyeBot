@@ -64,9 +64,10 @@ app.get("/", async (req, res) => {
   if (process.env["WEBHOOK_URL"]) {
     if (process.env["WEBHOOK_URL"].match(pattern)[0]) {
       const result = await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/getWebhookInfo`);
-      if (result.url) {
-        if(process.env["WEBHOOK_URL"] !== result.url){
-          await axios.get(`https://api.telegram.org/bot${botToken}/setWebhook?url=${process.env["WEBHOOK_URL"]}&drop_pending_updates=true`);
+      const link = result.data.result.url.toString();
+      if (link) {
+        if(process.env["WEBHOOK_URL"] !== link){
+          await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/setWebhook?url=${process.env["WEBHOOK_URL"]}&drop_pending_updates=true`);
         }
       }
     }
@@ -191,7 +192,7 @@ app.post("/", async (req, res) => {
 })
 if(process.env["BUILD"] === "Production"){
   app.listen(process.env.PORT, () => {
-    console.log("Started Server");
+    log("Started Server");
   });
 }
 module.exports = app;

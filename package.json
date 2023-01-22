@@ -3,9 +3,13 @@
   "version": "1.0.0",
   "description": "",
   "private": "true",
+  "main":"index.js",
   "scripts": {
     "start": "node index.js",
     "start-dev":"node main.js"
+  },
+  "engines": {
+    "node": "16.x"
   },
   "author": "Chitranjan Gupta",
   "license": "MIT",
