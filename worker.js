@@ -20,7 +20,8 @@ async function getPrice(url) {
     if (html) {
       const $ = cheerio.load(html);
       const el = $("._30jeq3._16Jk6d");
-      const p = parseFloat(el.text().replace("[₹,]", ""));
+      const regex = /[₹,]/gm;
+      const p = parseFloat(el.text().replace(regex, ""));
       return p;
     } else {
       return 0;
