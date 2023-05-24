@@ -76,11 +76,12 @@ app.get("/", async (req, res) => {
 })
 app.post("/", async (req, res) => {
   res.status(200).send("ok");
+  console.log(req.body);
   const messageReceived = req.body.message;
   if(messageReceived && messageReceived.reply_markup){
     console.log(messageReceived.reply_markup);
-  }else{
-    switch (req.body.message.text) {
+  }else if(messageReceived && messageReceived.text){
+    switch (messageReceived.text) {
       case "/start":
         {
           const chatId = req.body.message.chat.id;
