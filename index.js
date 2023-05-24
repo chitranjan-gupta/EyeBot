@@ -47,17 +47,43 @@ async function getUser(username) {
     return 0;
   }
 }
-let workerArray = [];
+let workerMap = new Map();
 function checkPrice(username, url, prices) {
-  const warkar = new Worker("./worker.js", { workerData: JSON.stringify({ username: username, url: url, prices: prices }) });
-  warkar.on("message", function(val) {
-    let { username, url, price } = JSON.parse(val);
-    User.updateOne({ username: username, "products.url": url }, { $push: { "products.$.prices": price }, $set: { "products.$.status": true } }).exec();
-  });
-  warkar.on("error", (err) => { log(err) });
-  workerArray.push(warkar);
+  if(!worker.has(url)){
+    const warkar = new Worker("./worker.js", { workerData: JSON.stringify({ username: username, url: url, prices: prices }) });
+    warkar.on("message", function(val) {
+      let { username, url, price } = JSON.parse(val);
+      User.updateOne({ username: username, "products.url": url }, { $push: { "products.$.prices": price }, $set: { "products.$.status": true } }).exec();
+    });
+    warkar.on("error", (err) => { log(err) });
+    workerMap.set(url,warkar);
+  }
 };
-
+function startPrice(username,url){
+  const data = await getUser(username);
+  if (data) {
+    User.findOneAndUpdate({ username: data.username }, { status: true }).exec();
+    for (let i = 0; i < data.products.length; i++) {
+      if(data.products[i].url == url){
+        checkPrice(data.username, data.products[i].url, data.products[i].prices ? data.products[i].prices : [-1]);
+      }
+    }
+  }
+}
+function stopPrice(username,url){
+  if(workerMap.has(url)){
+    workerMap.get(url).postMessage("exit");
+    workerMap.delete(url);
+    User.updateOne({ username: username, "products.url": url }, { $set: { "products.$.status": false } }).exec();
+    if(workerMap.size === 0){
+      User.findOneAndUpdate({ username: username }, { status: false }).exec();
+    }
+  }
+}
+function deletePrice(username,url){
+  stopPrice(username,url);
+  User.updateOne({ username: username }, { $pull: { "products": { "url": url } } }).exec();
+}
 app.use(express.json());
 app.get("/", async (req, res) => {
   log(req.headers["x-forwarded-for"]);
@@ -76,13 +102,43 @@ app.get("/", async (req, res) => {
 })
 app.post("/", async (req, res) => {
   res.status(200).send("ok");
-  console.log(req.body);
   if(req.body.callback_query){
     const cmes = req.body.callback_query;
-    const type = cmes.data;
-    const mes = `Stopped`;
-    const p = cmes.message.text;
-    await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery?callback_query_id=${cmes.id}&text=${encodeURIComponent(mes)}`);
+    const link = cmes.message.text.match(/Link: (https?:\/\/\S+)/)?.[1] || false;
+    const username = cmes.from.username;
+    let mes = "Working on it";
+    if(cmes.data){
+      switch(cmes.data){
+        case "start":{
+          startPrice(username,link);
+          mes = "Started Tracking";
+          break;
+        }
+        case "stop":{
+          stopPrice(username,link);
+          mes = "Stopped Tracking";
+          break;
+        }
+        case "delete":{
+          deletePrice(username,link);
+          mes = "Deleted the product from list";
+          break;
+        }
+        case "5000":{
+          break;
+        }
+        case "60000":{
+          break;
+        }
+        case "3600000":{
+          break;
+        }
+        case "86400000":{
+          break;
+        }
+      }
+    }
+    await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery?callback_query_id=${cmes.id}&text=${encodeURIComponent(mes)}&show_alert=${true.toString()}`);
   }else if(req.body.message){
     switch (req.body.message.text) {
       case "/start":
@@ -134,9 +190,9 @@ app.post("/", async (req, res) => {
               const message = "Stopped Tracking...";
               await sendMessage(chatId, message);
               //Stop Tracking
-              workerArray.forEach((warker) => {
-                warker.postMessage("exit");
-              })
+              for (const [key, value] of workerMap) {
+                value.postMessage("exit");
+              }
             } else {
               const message = "Tracking is already stopped.";
               await sendMessage(chatId, message);
