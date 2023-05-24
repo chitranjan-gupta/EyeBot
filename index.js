@@ -66,18 +66,15 @@ app.get("/", async (req, res) => {
       const result = await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/getWebhookInfo`);
       const link = result.data.result.url.toString();
       if (link) {
-        if(process.env["WEBHOOK_URL"] !== link){
+        if(process.env["WEBHOOK_URL"] != link){
           await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/setWebhook?url=${process.env["WEBHOOK_URL"]}&drop_pending_updates=true`);
         }
       }
     }
   }
-  //res.status(200).send("ok");
   res.render("pages/index");
 })
 app.post("/", async (req, res) => {
-  //log(req.rawHeaders);
-  //log(req.body.message.text);
   res.status(200).send("ok");
   switch (req.body.message.text) {
     case "/start":
@@ -149,7 +146,23 @@ app.post("/", async (req, res) => {
           for (let i = 0; i < data.products.length; i++) {
             const product = data.products[i];
             const productDetail = `${i + 1}. ${product.name ? product.name : "Unknown"} \nLink: ${product.url} \nCurrent Price: ${product.prices[product.prices.length - 1] ? "₹" + product.prices[product.prices.length - 1] : "Unknown"} \nStatus: ${product.status}\n`;
-            await sendMessage(chatId, productDetail);
+            const payload = {
+              chat_id:chatId,
+              text:productDetail,
+              reply_markup:{
+                inline_keyboard:[
+                  [
+                    { text:"Stop", callback_data:"stop" },
+                    { text:"Delete", callback_data:"delete"}
+                  ]
+                ]
+              }
+            };
+            await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,payload,{
+              headers:{
+                'Content-Type':'application/json'
+              }
+            });
           }
         } else {
           const message = "You haven't added any product.";
@@ -196,5 +209,3 @@ if(process.env["BUILD"] === "Production"){
   });
 }
 module.exports = app;
-//https://api.telegram.org/bot[botToken]/setWebhook?url=[url]&drop_pending_updates=true
-//https://api.telegram.org/bot[botToken]/sendMessage?chat_id=[intger or string]&text=[string]
