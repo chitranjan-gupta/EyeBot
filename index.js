@@ -58,7 +58,7 @@ function checkPrice(username, url, prices) {
     });
     warkar.on("error", (err) => { 
       User.updateOne({ username: username, "products.url": url }, { $set: { "products.$.status": false } }).exec();
-      log(err); 
+      log(err);
     });
     workerMap.set(url,warkar);
   }
@@ -110,7 +110,7 @@ app.post("/", async (req, res) => {
     const cmes = req.body.callback_query;
     const link = cmes.message.text.match(/Link: (https?:\/\/\S+)/)?.[1] || false;
     const username = cmes.from.username;
-    let mes = "Working on it";
+    let mes = "Working on it.";
     if(cmes.data){
       switch(cmes.data){
         case "start":{
@@ -150,7 +150,8 @@ app.post("/", async (req, res) => {
           const chatId = req.body.message.chat.id;
           const message = "Hi! " + req.body.message.chat.first_name +
             "\nWelcome You to Flipkart Product Price Tracker Bot." +
-            " You can track the price of Flipkart Product by sending the link.";
+            " You can track the price of Flipkart Product by sending the link." +
+            "\nto see the list of your products and latest price of the product use /list";
           await sendMessage(chatId, message);
           const data = await getUser(req.body.message.from.username);
           if (!data) {
@@ -196,6 +197,7 @@ app.post("/", async (req, res) => {
               //Stop Tracking
               for (const [key, value] of workerMap) {
                 value.postMessage("exit");
+                User.updateOne({ username: data.username, "products.url": key }, { $set: { "products.$.status": false } }).exec();
               }
             } else {
               const message = "Tracking is already stopped.";
@@ -240,7 +242,8 @@ app.post("/", async (req, res) => {
       case "/help":
         {
           const chatId = req.body.message.chat.id;
-          const message = "Type /start to Interact with the bot.";
+          const message = "1. Type /start to Interact with the bot." + "\n2. Type /list to list all the products."
+          + "\n3. Type /tstart to Start tracking all the listed products." + "\n4. Type /tstop to Stop tracking all the listed products.";
           await sendMessage(chatId, message);
           break;
         }
