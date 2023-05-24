@@ -147,22 +147,14 @@ app.post("/", async (req, res) => {
             const product = data.products[i];
             const productDetail = `${i + 1}. ${product.name ? product.name : "Unknown"} \nLink: ${product.url} \nCurrent Price: ${product.prices[product.prices.length - 1] ? "₹" + product.prices[product.prices.length - 1] : "Unknown"} \nStatus: ${product.status}\n`;
             const payload = {
-              chat_id:chatId,
-              text:productDetail,
-              reply_markup:{
-                inline_keyboard:[
-                  [
-                    { text:"Stop", callback_data:"stop" },
-                    { text:"Delete", callback_data:"delete"}
-                  ]
+              inline_keyboard:[
+                [
+                  { text:"Stop", callback_data:"stop" },
+                  { text:"Delete", callback_data:"delete"}
                 ]
-              }
+              ]
             };
-            await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,payload,{
-              headers:{
-                'Content-Type':'application/json'
-              }
-            });
+            await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(productDetail)}&reply_markup=${encodeURIComponent(JSON.stringify(payload))}`);
           }
         } else {
           const message = "You haven't added any product.";
