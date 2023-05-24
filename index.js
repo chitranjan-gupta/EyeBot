@@ -49,7 +49,7 @@ async function getUser(username) {
 }
 let workerMap = new Map();
 function checkPrice(username, url, prices) {
-  if(!worker.has(url)){
+  if(!workerMap.has(url)){
     const warkar = new Worker("./worker.js", { workerData: JSON.stringify({ username: username, url: url, prices: prices }) });
     warkar.on("message", function(val) {
       let { username, url, price } = JSON.parse(val);
