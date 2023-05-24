@@ -77,11 +77,14 @@ app.get("/", async (req, res) => {
 app.post("/", async (req, res) => {
   res.status(200).send("ok");
   console.log(req.body);
-  const messageReceived = req.body.message;
-  if(messageReceived && messageReceived.reply_markup){
-    console.log(messageReceived.reply_markup);
-  }else if(messageReceived && messageReceived.text){
-    switch (messageReceived.text) {
+  if(req.body.callback_query){
+    const cmes = req.body.callback_query;
+    const type = cmes.data;
+    const mes = `Stopped`;
+    const p = cmes.message.text;
+    await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery?callback_query_id=${cmes.id}&text=${encodeURIComponent(mes)}`);
+  }else if(req.body.message){
+    switch (req.body.message.text) {
       case "/start":
         {
           const chatId = req.body.message.chat.id;
@@ -151,11 +154,18 @@ app.post("/", async (req, res) => {
             for (let i = 0; i < data.products.length; i++) {
               const product = data.products[i];
               const productDetail = `${i + 1}. ${product.name ? product.name : "Unknown"} \nLink: ${product.url} \nCurrent Price: ${product.prices[product.prices.length - 1] ? "₹" + product.prices[product.prices.length - 1] : "Unknown"} \nStatus: ${product.status}\n`;
+              const productStatus = product.status?"Stop":"Start";
               const payload = {
                 inline_keyboard:[
                   [
-                    { text:"Stop", callback_data:"stop" },
-                    { text:"Delete", callback_data:"delete"}
+                    { text:productStatus, callback_data:productStatus.toLowerCase() },
+                    { text:"Delete", callback_data:"delete" }
+                  ],
+                  [
+                    { text:"5S", callback_data:"5000" },
+                    { text:"1M", callback_data:"60000" },
+                    { text:"1H", callback_data:"3600000" },
+                    { text:"1D", callback_data:"86400000" },
                   ]
                 ]
               };
