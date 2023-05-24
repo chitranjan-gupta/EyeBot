@@ -59,7 +59,7 @@ function checkPrice(username, url, prices) {
     workerMap.set(url,warkar);
   }
 };
-function startPrice(username,url){
+async function startPrice(username,url){
   const data = await getUser(username);
   if (data) {
     User.findOneAndUpdate({ username: data.username }, { status: true }).exec();
@@ -110,7 +110,7 @@ app.post("/", async (req, res) => {
     if(cmes.data){
       switch(cmes.data){
         case "start":{
-          startPrice(username,link);
+          startPrice(username,link).then((v) => {});
           mes = "Started Tracking";
           break;
         }
