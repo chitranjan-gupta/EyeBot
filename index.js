@@ -51,11 +51,15 @@ let workerMap = new Map();
 function checkPrice(username, url, prices) {
   if(!workerMap.has(url)){
     const warkar = new Worker("./worker.js", { workerData: JSON.stringify({ username: username, url: url, prices: prices }) });
+    User.updateOne({ username: username, "products.url": url }, { $set: { "products.$.status": true } }).exec();
     warkar.on("message", function(val) {
       let { username, url, price } = JSON.parse(val);
-      User.updateOne({ username: username, "products.url": url }, { $push: { "products.$.prices": price }, $set: { "products.$.status": true } }).exec();
+      User.updateOne({ username: username, "products.url": url }, { $push: { "products.$.prices": price } }).exec();
     });
-    warkar.on("error", (err) => { log(err) });
+    warkar.on("error", (err) => { 
+      User.updateOne({ username: username, "products.url": url }, { $set: { "products.$.status": false } }).exec();
+      log(err); 
+    });
     workerMap.set(url,warkar);
   }
 };
@@ -165,7 +169,7 @@ app.post("/", async (req, res) => {
           const chatId = req.body.message.chat.id;
           const data = await getUser(req.body.message.from.username);
           if (data) {
-            if (data.status === false) {
+            if (data.status == false) {
               await User.findOneAndUpdate({ username: data.username }, { status: true })
               const message = "Started Tracking...";
               await sendMessage(chatId, message);
@@ -185,7 +189,7 @@ app.post("/", async (req, res) => {
           const chatId = req.body.message.chat.id;
           const data = await getUser(req.body.message.from.username);
           if (data) {
-            if (data.status === true) {
+            if (data.status == true) {
               await User.findOneAndUpdate({ username: data.username }, { status: false });
               const message = "Stopped Tracking...";
               await sendMessage(chatId, message);

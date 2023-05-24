@@ -33,7 +33,7 @@ async function getPrice(url) {
 async function check() {
   const price = await getPrice(url);
   console.log(prices);
-  if (price > prices[prices.length - 1]) {
+  if (price != prices[prices.length - 1]) {
     prices.push(price);
     parentPort.postMessage(JSON.stringify({ username: username, url: url, price: price }));
   }
